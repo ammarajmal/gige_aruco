@@ -1,0 +1,3 @@
+/home/ammar/sitl_agcam/gige_aruco/build/CMakeFiles/rebuild_cache.dir
+/home/ammar/sitl_agcam/gige_aruco/build/CMakeFiles/edit_cache.dir
+/home/ammar/sitl_agcam/gige_aruco/build/CMakeFiles/gige_aruco.dir
