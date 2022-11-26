@@ -53,6 +53,7 @@ CMAKE_BINARY_DIR = /home/ammar/sitl_agcam/gige_aruco/build
 # Directory level rules for the build root directory
 
 # The main recursive "all" target.
+all: CMakeFiles/backup.dir/all
 all: CMakeFiles/gige_aruco.dir/all
 
 .PHONY : all
@@ -63,9 +64,37 @@ preinstall:
 .PHONY : preinstall
 
 # The main recursive "clean" target.
+clean: CMakeFiles/backup.dir/clean
 clean: CMakeFiles/gige_aruco.dir/clean
 
 .PHONY : clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/backup.dir
+
+# All Build rule for target.
+CMakeFiles/backup.dir/all:
+	$(MAKE) -f CMakeFiles/backup.dir/build.make CMakeFiles/backup.dir/depend
+	$(MAKE) -f CMakeFiles/backup.dir/build.make CMakeFiles/backup.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/ammar/sitl_agcam/gige_aruco/build/CMakeFiles --progress-num=1,2 "Built target backup"
+.PHONY : CMakeFiles/backup.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/backup.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ammar/sitl_agcam/gige_aruco/build/CMakeFiles 2
+	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/backup.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ammar/sitl_agcam/gige_aruco/build/CMakeFiles 0
+.PHONY : CMakeFiles/backup.dir/rule
+
+# Convenience name for target.
+backup: CMakeFiles/backup.dir/rule
+
+.PHONY : backup
+
+# clean rule for target.
+CMakeFiles/backup.dir/clean:
+	$(MAKE) -f CMakeFiles/backup.dir/build.make CMakeFiles/backup.dir/clean
+.PHONY : CMakeFiles/backup.dir/clean
 
 #=============================================================================
 # Target rules for target CMakeFiles/gige_aruco.dir
@@ -74,7 +103,7 @@ clean: CMakeFiles/gige_aruco.dir/clean
 CMakeFiles/gige_aruco.dir/all:
 	$(MAKE) -f CMakeFiles/gige_aruco.dir/build.make CMakeFiles/gige_aruco.dir/depend
 	$(MAKE) -f CMakeFiles/gige_aruco.dir/build.make CMakeFiles/gige_aruco.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/ammar/sitl_agcam/gige_aruco/build/CMakeFiles --progress-num=1,2 "Built target gige_aruco"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/ammar/sitl_agcam/gige_aruco/build/CMakeFiles --progress-num=3,4 "Built target gige_aruco"
 .PHONY : CMakeFiles/gige_aruco.dir/all
 
 # Build rule for subdir invocation for target.

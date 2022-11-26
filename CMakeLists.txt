@@ -26,3 +26,6 @@ set(GIGE_CAM libMVSDK.so)
 
 add_executable(gige_aruco src/gige_aruco.cpp)
 target_link_libraries(gige_aruco ${GIGE_CAM} ${OpenCV_LIBRARIES})
+
+add_executable(backup src/backup.cpp)
+target_link_libraries(backup ${GIGE_CAM} ${OpenCV_LIBRARIES})

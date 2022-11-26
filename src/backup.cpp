@@ -23,6 +23,7 @@ const float arucoSquareDimension = 0.1016f; // meters
 const Size chessboardDimensions = Size(6,9);
 unsigned char           * g_pRgbBuffer;     //processed data cache
 
+
 void createKnownBoardPosition(Size boardSize, float squareEdgeLength, vector<Point3f>& corners){
     for (int i = 0; i < boardSize.height; i++) {
         for (int j = 0; j < boardSize.width; j ++) {
@@ -487,10 +488,52 @@ int gige_fpsCal()
 
     return 0;
 }
+void showwebcam()
+{
+    cv::VideoCapture cap(0); // open the default camera
+    if(!cap.isOpened())  // check if we succeeded
+        return;
+
+    cv::Mat edges;
+    cv::namedWindow("edges",1);
+    for(;;)
+    {
+        auto total_start = chrono::steady_clock::now();
+        cv::Mat frame;
+        cap >> frame; // get a new frame from camera
+        cv::cvtColor(frame, edges, cv::COLOR_BGR2GRAY);
+        cv::GaussianBlur(edges, edges, cv::Size(7,7), 1.5, 1.5);
+        cv::Canny(edges, edges, 0, 30, 3);
+        edges = frame;
+        auto total_end_gige = chrono::steady_clock::now();
+        float total_fps_gige = 1000.0 / chrono::duration_cast<chrono::milliseconds>(total_end_gige - total_start).count();
+        std::ostringstream stats_ss;
+        stats_ss << fixed << setprecision(2);
+        stats_ss << "Total FPS: " << total_fps_gige;
+        auto stats = stats_ss.str();
+                
+        int baseline;
+        auto stats_bg_sz = getTextSize(stats.c_str(), FONT_HERSHEY_COMPLEX_SMALL, 1, 1, &baseline);
+        rectangle(edges, Point(0, 0), Point(stats_bg_sz.width, stats_bg_sz.height + 10), Scalar(0, 0, 0), FILLED);
+        putText(edges, stats.c_str(), Point(0, stats_bg_sz.height + 5), FONT_HERSHEY_COMPLEX_SMALL, 1, Scalar(255, 255, 255));
+        cout<< stats.c_str()<<endl;
+        cv::namedWindow("edges");
+                
+        cv::imshow("edges", edges);
+        if(cv::waitKey(30) >= 0) break;
+    }
+    // the camera will be deinitialized automatically in VideoCapture destructor
+}
+
 
 int main() {
-    Mat cameraMatrix = Mat::eye(3, 3, CV_64F);
-    Mat distanceCoefficients;
+    gige_fpsCal();
+    // showwebcam();
+    
 
-    cameraCalibrationProcess(cameraMatrix, distanceCoefficients);
+    // Mat cameraMatrix = Mat::eye(3, 3, CV_64F);
+    // Mat distanceCoefficients;
+
+    // cameraCalibrationProcess(cameraMatrix, distanceCoefficients);
+    return 0;
 }

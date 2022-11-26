@@ -111,6 +111,19 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named backup
+
+# Build rule for target.
+backup: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 backup
+.PHONY : backup
+
+# fast build rule for target.
+backup/fast:
+	$(MAKE) -f CMakeFiles/backup.dir/build.make CMakeFiles/backup.dir/build
+.PHONY : backup/fast
+
+#=============================================================================
 # Target rules for targets named gige_aruco
 
 # Build rule for target.
@@ -122,6 +135,33 @@ gige_aruco: cmake_check_build_system
 gige_aruco/fast:
 	$(MAKE) -f CMakeFiles/gige_aruco.dir/build.make CMakeFiles/gige_aruco.dir/build
 .PHONY : gige_aruco/fast
+
+src/backup.o: src/backup.cpp.o
+
+.PHONY : src/backup.o
+
+# target to build an object file
+src/backup.cpp.o:
+	$(MAKE) -f CMakeFiles/backup.dir/build.make CMakeFiles/backup.dir/src/backup.cpp.o
+.PHONY : src/backup.cpp.o
+
+src/backup.i: src/backup.cpp.i
+
+.PHONY : src/backup.i
+
+# target to preprocess a source file
+src/backup.cpp.i:
+	$(MAKE) -f CMakeFiles/backup.dir/build.make CMakeFiles/backup.dir/src/backup.cpp.i
+.PHONY : src/backup.cpp.i
+
+src/backup.s: src/backup.cpp.s
+
+.PHONY : src/backup.s
+
+# target to generate assembly for a file
+src/backup.cpp.s:
+	$(MAKE) -f CMakeFiles/backup.dir/build.make CMakeFiles/backup.dir/src/backup.cpp.s
+.PHONY : src/backup.cpp.s
 
 src/gige_aruco.o: src/gige_aruco.cpp.o
 
@@ -158,7 +198,11 @@ help:
 	@echo "... depend"
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
+	@echo "... backup"
 	@echo "... gige_aruco"
+	@echo "... src/backup.o"
+	@echo "... src/backup.i"
+	@echo "... src/backup.s"
 	@echo "... src/gige_aruco.o"
 	@echo "... src/gige_aruco.i"
 	@echo "... src/gige_aruco.s"
