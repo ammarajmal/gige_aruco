@@ -95,7 +95,6 @@ void cameraCalibration(vector<Mat> calibrationImages, Size boardSize, float squa
     distanceCoefficients = Mat::zeros(8, 1, CV_64F);
     calibrateCamera(worldSpaceCornerPoints, checkerboardImageSpacePoints, boardSize, cameraMatrix, distanceCoefficients, rVectors, tVectors);
 }
-
 bool saveCameraCalibration(string name, Mat cameraMatrix, Mat distanceCoefficients){
     ofstream outstream(name);
     if (outstream){
@@ -183,7 +182,6 @@ void cameraCalibrationProcess(Mat& cameraMatrix, Mat& distanceCoefficients)
     }
     return;
 }
-
 bool loadCameraCalibration(string name, Mat& cameraMatrix, Mat& distanceCoefficients){
     ifstream instream(name);
     if (instream){
@@ -217,8 +215,7 @@ bool loadCameraCalibration(string name, Mat& cameraMatrix, Mat& distanceCoeffici
     }
     return false;
 }
-
-int startWebcamMonitoring(const Mat& cameraMatrix, const Mat& distanceCoefficients, float arucoSquareDimension) {
+int startGigeCamera(const Mat& cameraMatrix, const Mat& distanceCoefficients, float arucoSquareDimension) {
     Mat frame;
     vector<int>  markerIds;
     vector<vector<Point2f>> markerCorners, rejectedCandidates;
@@ -246,7 +243,6 @@ int startWebcamMonitoring(const Mat& cameraMatrix, const Mat& distanceCoefficien
     }
     return 1;
 }
-
 int gige_cam()
 {
 
@@ -324,14 +320,14 @@ int gige_cam()
 		{
 		    CameraImageProcess(hCamera, pbyBuffer, g_pRgbBuffer,&sFrameInfo);
 		    
-		    cv::Mat matImage(
+		    cv::Mat frame(
 					cvSize(sFrameInfo.iWidth,sFrameInfo.iHeight), 
 					sFrameInfo.uiMediaType == CAMERA_MEDIA_TYPE_MONO8 ? CV_8UC1 : CV_8UC3,
 					g_pRgbBuffer
 					);
 
             cv::namedWindow("Opencv Demo");
-			imshow("Opencv Demo", matImage);
+			imshow("Opencv Demo", frame);
 
             int key = cv::waitKey(1);
             if (key == 27) // ESP stop
@@ -438,7 +434,7 @@ int gige_fpsCal()
             {
                 CameraImageProcess(hCamera, pbyBuffer, g_pRgbBuffer,&sFrameInfo);
                 
-                cv::Mat matImage(
+                cv::Mat frame(
                         cvSize(sFrameInfo.iWidth,sFrameInfo.iHeight), 
                         sFrameInfo.uiMediaType == CAMERA_MEDIA_TYPE_MONO8 ? CV_8UC1 : CV_8UC3,
                         g_pRgbBuffer
@@ -458,12 +454,12 @@ int gige_fpsCal()
 
                 int baseline;
                 auto stats_bg_sz = getTextSize(stats.c_str(), FONT_HERSHEY_COMPLEX_SMALL, 1, 1, &baseline);
-                rectangle(matImage, Point(0, 0), Point(stats_bg_sz.width, stats_bg_sz.height + 10), Scalar(0, 0, 0), FILLED);
-                putText(matImage, stats.c_str(), Point(0, stats_bg_sz.height + 5), FONT_HERSHEY_COMPLEX_SMALL, 1, Scalar(255, 255, 255));
+                rectangle(frame, Point(0, 0), Point(stats_bg_sz.width, stats_bg_sz.height + 10), Scalar(0, 0, 0), FILLED);
+                putText(frame, stats.c_str(), Point(0, stats_bg_sz.height + 5), FONT_HERSHEY_COMPLEX_SMALL, 1, Scalar(255, 255, 255));
 
                 cout<< stats.c_str()<<endl;
                 cv::namedWindow("Opencv Demo");
-                imshow("Opencv Demo", matImage);
+                imshow("Opencv Demo", frame);
 
                 int key = cv::waitKey(1);
                 if (key == 27) // ESP stop
@@ -487,12 +483,161 @@ int gige_fpsCal()
 
     return 0;
 }
-void gigeCamCalibrationProcess(Mat& ){
+void gigeCamCalibrationProcess(Mat& cameraMatrix, Mat& distanceCoefficients){
+    // Mat frame;
+    Mat drawToFrame;
+    vector<Mat> savedImages;
+    vector<vector<Point2f>> markerCorners, rejectedCandidates;
+
+    int iCameraCounts = 1;
+    int isStatus=-1;
+    tSdkCameraDevInfo tCameraEnumList;
+    int hCamera;
+    tSdkCameraCapbility tCapability;      //Device description information
+    tSdkFrameHead sFrameInfo;
+    BYTE* pbyBuffer;
+    int iDisplayFrames = 10000;
+    IplImage *iplImage = NULL;
+    int channel=3;
+
+    CameraSdkInit(1);
+
+    //Enumerate devices and create a list of devices
+    isStatus = CameraEnumerateDevice(&tCameraEnumList,&iCameraCounts);
+    printf("state = %d\n", isStatus);
+
+    printf("count = %d\n", iCameraCounts);
+
+    // no device connected
+    if(iCameraCounts==0){
+        return;
+    }
+
+    //Camera initialization. After the initialization is successful,
+    // any other camera-related operation interface can be called
+    isStatus = CameraInit(&tCameraEnumList,-1,-1,&hCamera);
+
+    //initialization failed
+    printf("state = %d\n", isStatus);
+    if(isStatus!=CAMERA_STATUS_SUCCESS){
+        return;
+    }
+
+
+    //Get the camera's characteristic description structure.
+    // This structure contains the range information of various parameters that can be set
+    //  by the camera. Determines the parameters of the relevant function
+
+    CameraGetCapability(hCamera,&tCapability);
+
+    //
+    g_pRgbBuffer = (unsigned char*)malloc(tCapability.sResolutionRange.iHeightMax*tCapability.sResolutionRange.iWidthMax*3);
+
+        /* Let the SDK enter the working mode and start receiving images sent from the camera
+        data. If the current camera is in trigger mode, it needs to receive
+        The image is not updated until the frame is triggered. */
+    CameraPlay(hCamera);
+
+    if(tCapability.sIspCapacity.bMonoSensor){
+        channel=1;
+        CameraSetIspOutFormat(hCamera,CAMERA_MEDIA_TYPE_MONO8);
+    }else{
+        channel=3;
+        CameraSetIspOutFormat(hCamera,CAMERA_MEDIA_TYPE_BGR8);
+    }
+
+    while(1)
+    {
+
+        auto total_start = chrono::steady_clock::now();
     
+        if(CameraGetImageBuffer(hCamera,&sFrameInfo,&pbyBuffer,1000) == CAMERA_STATUS_SUCCESS)
+        {
+            CameraImageProcess(hCamera, pbyBuffer, g_pRgbBuffer,&sFrameInfo);
+            
+            cv::Mat frame(
+                    cvSize(sFrameInfo.iWidth,sFrameInfo.iHeight), 
+                    sFrameInfo.uiMediaType == CAMERA_MEDIA_TYPE_MONO8 ? CV_8UC1 : CV_8UC3,
+                    g_pRgbBuffer
+                    );
+
+            vector<Vec2f> foundPoints;
+            bool found = false;
+            found = findChessboardCorners(frame, chessboardDimensions, foundPoints, CALIB_CB_ADAPTIVE_THRESH | CALIB_CB_NORMALIZE_IMAGE);
+            frame.copyTo(drawToFrame);
+            drawChessboardCorners(drawToFrame, chessboardDimensions, foundPoints, found);
+            if(found){
+                imshow("Camera Feed", drawToFrame);
+            }else{
+                imshow("Camera Feed", frame);
+            }
+            char character = waitKey(1000/30);
+            switch(character){
+                case ' ':
+                    //saving image
+                    if(found){
+                        Mat temp;
+                        frame.copyTo(temp);
+                        savedImages.push_back(temp);
+                    }
+                    break;
+                case 13:
+                    //start calibration
+                    if(savedImages.size()>15){
+                        cameraCalibration(savedImages, chessboardDimensions, calibrationSquareDimension, cameraMatrix, distanceCoefficients);
+                    saveCameraCalibration("GIGE_camera_calibration", cameraMatrix, distanceCoefficients);
+                    cout<<"Calibration Done!"<<endl;
+                    }
+                    break;
+                case 27:
+                    //escape key
+                    return;
+                    break;
+            }
+
+            
+            
+            // ********************************************************
+            // auto total_end_gige = chrono::steady_clock::now();
+            // float total_fps_gige = 1000.0 / chrono::duration_cast<chrono::milliseconds>(total_end_gige - total_start).count();
+            // std::ostringstream stats_ss;
+            // stats_ss << fixed << setprecision(2);
+            // stats_ss << "Total FPS: " << total_fps_gige;
+            // auto stats = stats_ss.str();
+            // int baseline;
+            // auto stats_bg_sz = getTextSize(stats.c_str(), FONT_HERSHEY_COMPLEX_SMALL, 1, 1, &baseline);
+            // rectangle(frame, Point(0, 0), Point(stats_bg_sz.width, stats_bg_sz.height + 10), Scalar(0, 0, 0), FILLED);
+            // putText(frame, stats.c_str(), Point(0, stats_bg_sz.height + 5), FONT_HERSHEY_COMPLEX_SMALL, 1, Scalar(255, 255, 255));
+            // cout<< stats.c_str()<<endl;
+            // cv::namedWindow("Opencv Demo");
+            // ********************************************************
+
+            // imshow("Opencv Demo", frame);
+
+            // int key = cv::waitKey(1);
+            // if (key == 27) // ESP stop
+            //     break;
+            
+            CameraReleaseImageBuffer(hCamera,pbyBuffer);
+        }
+    }
+    CameraUnInit(hCamera);
+
+    //Note, free after deinitialization
+
+    free(g_pRgbBuffer);
+
+    return;
+
 }
+
 int main() {
     Mat cameraMatrix = Mat::eye(3, 3, CV_64F);
     Mat distanceCoefficients;
 
-    cameraCalibrationProcess(cameraMatrix, distanceCoefficients);
+    // gigeCamCalibrationProcess(cameraMatrix, distanceCoefficients);
+    loadCameraCalibration("GIGE_camera_calibration", cameraMatrix, distanceCoefficients);
+    startGigeCamera(cameraMatrix, distanceCoefficients, arucoSquareDimension);
+
+    return 0;
 }

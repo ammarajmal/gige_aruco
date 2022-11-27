@@ -136,6 +136,7 @@ void cameraCalibrationProcess(Mat& cameraMatrix, Mat& distanceCoefficients)
     // Mat distanceCoefficients;
     vector<Mat> savedImages;
     vector<vector<Point2f>> markerCorners, rejectedCandidates;
+    
     VideoCapture vid(2);
     if (!vid.isOpened())
         return;
@@ -144,6 +145,7 @@ void cameraCalibrationProcess(Mat& cameraMatrix, Mat& distanceCoefficients)
     while (true){
         if (!vid.read(frame))
             break;
+            
         vector<Vec2f> foundPoints;
         bool found = false;
         found = findChessboardCorners(frame, chessboardDimensions, foundPoints, CALIB_CB_ADAPTIVE_THRESH | CALIB_CB_NORMALIZE_IMAGE | CALIB_CB_FAST_CHECK);
