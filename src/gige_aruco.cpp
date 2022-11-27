@@ -222,27 +222,117 @@ int startGigeCamera(const Mat& cameraMatrix, const Mat& distanceCoefficients, fl
     aruco::DetectorParameters parameters;
     Ptr<aruco::Dictionary> markerDictionary = aruco::getPredefinedDictionary(aruco::PREDEFINED_DICTIONARY_NAME::DICT_4X4_50);
     
-    VideoCapture vid(2);
-    if (!vid.isOpened())
-        return -1;
-    namedWindow("webcam", WINDOW_AUTOSIZE);
+    // **************************to be replaced************************************
+    // VideoCapture vid(2);
+    // if (!vid.isOpened())
+    //     return -1;
+    // namedWindow("webcam", WINDOW_AUTOSIZE);
+    // **************************************************************
+    int                     iCameraCounts = 1;
+    int                     iStatus=-1;
+    tSdkCameraDevInfo       tCameraEnumList;
+    int                     hCamera;
+    tSdkCameraCapbility     tCapability;      //Device description information
+    tSdkFrameHead           sFrameInfo;
+    BYTE*			        pbyBuffer;
+    int                     iDisplayFrames = 10000;
+    IplImage *iplImage = NULL;
+    int                     channel=3;
+
+    CameraSdkInit(1);
 
     vector<Vec3d> rotationVectors, translationVectors;
 
-    while (true){
-        if (!vid.read(frame))
-            break;
-        aruco::detectMarkers(frame, markerDictionary, markerCorners, markerIds);
-        aruco::estimatePoseSingleMarkers(markerCorners, arucoSquareDimension, cameraMatrix, distanceCoefficients, rotationVectors, translationVectors);
+    //Enumerate devices and create a list of devices
+    iStatus = CameraEnumerateDevice(&tCameraEnumList,&iCameraCounts);
+	printf("state = %d\n", iStatus);
 
-        for (int i =0 ; i < markerIds.size(); i++)
-            aruco::drawAxis(frame, cameraMatrix, distanceCoefficients, rotationVectors[i], translationVectors[i], 0.1f);
-        imshow("webcam", frame);
-        if (waitKey(30)>=0)
-            break;
+	printf("count = %d\n", iCameraCounts);
+    
+    // no device connected
+    if(iCameraCounts==0){
+        return -1;
+    }
+
+    //Camera initialization. After the initialization is successful, 
+    // any other camera-related operation interface can be called
+    iStatus = CameraInit(&tCameraEnumList,-1,-1,&hCamera);
+
+    //initialization failed
+	printf("state = %d\n", iStatus);
+    if(iStatus!=CAMERA_STATUS_SUCCESS){
+        return -1;
+    }
+    //Get the camera's characteristic description structure. 
+    // This structure contains the range information of various parameters that can be set
+    //  by the camera. Determines the parameters of the relevant function
+    
+    CameraGetCapability(hCamera,&tCapability);
+
+    //
+    g_pRgbBuffer = (unsigned char*)malloc(tCapability.sResolutionRange.iHeightMax*tCapability.sResolutionRange.iWidthMax*3);
+       
+     /* Let the SDK enter the working mode and start receiving images sent from the camera
+     data. If the current camera is in trigger mode, it needs to receive
+     The image is not updated until the frame is triggered. */
+    CameraPlay(hCamera);
+
+    /*Other camera parameter settings
+     For example CameraSetExposureTime CameraGetExposureTime set/read exposure time
+          CameraSetImageResolution CameraGetImageResolution Set/read resolution
+          CameraSetGamma, CameraSetConrast, CameraSetGain, etc. set image gamma, contrast, RGB digital gain, etc.
+          This routine is just to demonstrate how to convert the image obtained in the SDK into the OpenCV image format, so as to call the OpenCV image processing function for subsequent development
+     */
+
+    if(tCapability.sIspCapacity.bMonoSensor){
+        channel=1;
+        CameraSetIspOutFormat(hCamera,CAMERA_MEDIA_TYPE_MONO8);
+    }else{
+        channel=3;
+        CameraSetIspOutFormat(hCamera,CAMERA_MEDIA_TYPE_BGR8);
+    }
+    
+    while (true){
+        if(CameraGetImageBuffer(hCamera,&sFrameInfo,&pbyBuffer,1000) == CAMERA_STATUS_SUCCESS)
+        {
+            CameraImageProcess(hCamera, pbyBuffer, g_pRgbBuffer,&sFrameInfo);
+		    
+		    cv::Mat frame(
+					cvSize(sFrameInfo.iWidth,sFrameInfo.iHeight), 
+					sFrameInfo.uiMediaType == CAMERA_MEDIA_TYPE_MONO8 ? CV_8UC1 : CV_8UC3,
+					g_pRgbBuffer
+					);
+            cv::namedWindow("ARUCO");
+            aruco::detectMarkers(frame, markerDictionary, markerCorners, markerIds);
+            aruco::estimatePoseSingleMarkers(markerCorners, arucoSquareDimension, cameraMatrix, distanceCoefficients, rotationVectors, translationVectors);
+            for (int i = 0; i < markerIds.size(); i++){
+                aruco::drawAxis(frame, cameraMatrix, distanceCoefficients, rotationVectors[i], translationVectors[i], 0.1f);
+            }
+            imshow("ARUCO", frame);
+            if (waitKey(30) >= 0)
+                break;
+        }
     }
     return 1;
 }
+
+    // *********************************************************************************
+    // vector<Vec3d> rotationVectors, translationVectors;
+    // *********************************to be replaced ***********************************
+    // while (true){
+    //     if (!vid.read(frame))
+    //         break;
+    //     aruco::detectMarkers(frame, markerDictionary, markerCorners, markerIds);
+    //     aruco::estimatePoseSingleMarkers(markerCorners, arucoSquareDimension, cameraMatrix, distanceCoefficients, rotationVectors, translationVectors);
+//         for (int i =0 ; i < markerIds.size(); i++)
+//             aruco::drawAxis(frame, cameraMatrix, distanceCoefficients, rotationVectors[i], translationVectors[i], 0.1f);
+//         imshow("webcam", frame);
+//         if (waitKey(30)>=0)
+//             break;
+//     }
+//     // *********************************************************************************
+//     return 1;
+// }
 int gige_cam()
 {
 
@@ -634,8 +724,10 @@ void gigeCamCalibrationProcess(Mat& cameraMatrix, Mat& distanceCoefficients){
 int main() {
     Mat cameraMatrix = Mat::eye(3, 3, CV_64F);
     Mat distanceCoefficients;
-
+    // gige_cam();
+    
     // gigeCamCalibrationProcess(cameraMatrix, distanceCoefficients);
+    
     loadCameraCalibration("GIGE_camera_calibration", cameraMatrix, distanceCoefficients);
     startGigeCamera(cameraMatrix, distanceCoefficients, arucoSquareDimension);
 
