@@ -16,12 +16,13 @@
 
 using namespace std;
 using namespace cv;
+unsigned char           * g_pRgbBuffer;     //processed data cache
 int markNum(1);
 int waitTime(50);
 const float calibrationSquareDimension = 0.0245f; // meters
 const float arucoSquareDimension = 0.1016f; // meters
 const Size chessboardDimensions = Size(6,9);
-unsigned char           * g_pRgbBuffer;     //processed data cache
+
 
 void createKnownBoardPosition(Size boardSize, float squareEdgeLength, vector<Point3f>& corners){
     for (int i = 0; i < boardSize.height; i++) {
